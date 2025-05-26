@@ -107,7 +107,19 @@
     function selectPlanet(planet: any) {
         selectedPlanet = selectedPlanet === planet ? null : planet;
     }
+
+    // Add preloading state
+    let imageLoaded = false;
+    
+    // Preload image
+    function handleImageLoad() {
+        imageLoaded = true;
+    }
 </script>
+
+<svelte:head>
+    <link rel="preload" as="image" href={spaceImage} />
+</svelte:head>
 
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
@@ -352,9 +364,25 @@
 
 <!-- Mobile Only Content -->
 <div 
-    class="md:hidden space-container text-white"
-    style="background-image: url({spaceImage}); background-size: cover; background-position: center; min-height: 100vh;">
+    class="md:hidden space-container text-white relative"
+    style="min-height: 100vh;">
     
+    <!-- Background image with loading state -->
+    <img
+        src={spaceImage}
+        alt="space background"
+        class="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 -z-10"
+        class:opacity-0={!imageLoaded}
+        on:load={handleImageLoad}
+        loading="eager"
+        decoding="async"
+    />
+
+    <!-- Loading placeholder -->
+    {#if !imageLoaded}
+        <div class="absolute inset-0 bg-gradient-to-b from-[#0B0B3B] to-[#000033]"></div>
+    {/if}
+
     <!-- Stars background -->
     <div class="stars">
         <div class="star"></div>
