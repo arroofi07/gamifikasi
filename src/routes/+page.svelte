@@ -13,12 +13,17 @@
                 createdAt: new Date(),
             });
             
-            localStorage.setItem("userId", docRef.id);
-            localStorage.setItem("username", username);
+            // Store user data with expiration
+            const userData = {
+                id: docRef.id,
+                username: username,
+                expiry: new Date().getTime() + (60 * 60 * 1000) // 1 hour in milliseconds
+                // expiry: new Date().getTime() + (30 * 1000) // 30 second in milliseconds
+            };
             
-            // Navigate to home page
+            localStorage.setItem("userData", JSON.stringify(userData));
+            
             await goto('/home');
-            
             username = "";
         } catch (error) {
             console.error("Error creating user: ", error);

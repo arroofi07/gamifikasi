@@ -9,6 +9,8 @@
     import uranus from '$lib/assets/uranus.png';
     import neptune from '$lib/assets/neptune.png';
     import jupiter from '$lib/assets/jupiter.png';
+    import { onMount, onDestroy } from 'svelte';
+    import { goto } from '$app/navigation';
 
     let selectedPlanet: any = $state(null);
 
@@ -134,6 +136,37 @@
         point += 1;
     };
 
+    let intervalId: any;
+
+    onMount(() => {
+        // Check every second
+        intervalId = setInterval(() => {
+            const userDataStr = localStorage.getItem('userData');
+            if (!userDataStr) {
+                goto('/');
+                return;
+            }
+
+            try {
+                const userData = JSON.parse(userDataStr);
+                const now = new Date().getTime();
+
+                if (now > userData.expiry) {
+                    localStorage.removeItem('userData');
+                    goto('/');
+                }
+            } catch (error) {
+                localStorage.removeItem('userData');
+                goto('/');
+            }
+        }, 1000); // Check setiap 1 detik
+    });
+
+    onDestroy(() => {
+        if (intervalId) {
+            clearInterval(intervalId);
+        }
+    });
 </script>
 
 <svelte:head>
