@@ -10,7 +10,7 @@
     import neptune from '$lib/assets/neptune.png';
     import jupiter from '$lib/assets/jupiter.png';
 
-    let selectedPlanet: any = null;
+    let selectedPlanet: any = $state(null);
 
     const planets = [
         {
@@ -19,7 +19,8 @@
             width: 230,
             height: 230,
             animation: "rotate",
-            description: "Pusat tata surya kita",
+            question: "Pusat tata surya kita",
+            answer: ["Matahari", "Bumi", "Pluto"],
             color: "#FFD700"
         },
         {
@@ -29,7 +30,8 @@
             height: 70,
             position: "ml-42",
             animation: "bounce",
-            description: "Planet terdekat dengan Matahari",
+               question: "Pusat tata surya kita",
+            answer: ["Matahari", "Bumi", "Pluto"],
             color: "#8C7853"
         },
         {
@@ -39,7 +41,8 @@
             height: 80,
             position: "mr-52",
             animation: "pulse",
-            description: "Planet terpanas di tata surya",
+            question: "Pusat tata surya kita",
+            answer: ["Matahari", "Bumi", "Pluto"],
             color: "#FFC649"
         },
         {
@@ -49,7 +52,8 @@
             height: 100,
             position: "ml-10",
             animation: "float",
-            description: "Planet rumah kita",
+           question: "Pusat tata surya kita",
+            answer: ["Matahari", "Bumi", "Pluto"],
             color: "#6B93D6"
         },
         {
@@ -59,7 +63,8 @@
             height: 80,
             position: "ml-52",
             animation: "shake",
-            description: "Planet merah",
+       question: "Pusat tata surya kita",
+            answer: ["Matahari", "Bumi", "Pluto"],
             color: "#CD5C5C"
         },
         {
@@ -69,7 +74,8 @@
             height: 200,
             position: "ml-2",
             animation: "float",
-            description: "Planet terbesar di tata surya",
+              question: "Pusat tata surya kita",
+            answer: ["Matahari", "Bumi", "Pluto"],
             color: "#D8CA9D"
         },
         {
@@ -79,7 +85,8 @@
             height: 200,
             position: "mr-5",
             animation: "wobble",
-            description: "Planet dengan cincin indah",
+              question: "Pusat tata surya kita",
+            answer: ["Matahari", "Bumi", "Pluto"],
             color: "#FAD5A5"
         },
         {
@@ -89,7 +96,8 @@
             height: 150,
             position: "mr-52",
             animation: "orbit",
-            description: "Planet es raksasa",
+                question: "Pusat tata surya kita",
+            answer: ["Matahari", "Bumi", "Pluto"],
             color: "#4FD0E7"
         },
         {
@@ -99,7 +107,8 @@
             height: 100,
             position: "ml-52",
             animation: "glow",
-            description: "Planet terjauh dari Matahari",
+              question: "Pusat tata surya kita",
+            answer: ["Matahari", "Bumi", "Pluto"],
             color: "#4B70DD"
         }
     ];
@@ -115,11 +124,117 @@
     function handleImageLoad() {
         imageLoaded = true;
     }
+
+
+
+    // handle point
+    let point = $state(0);
+
+    const handlePoint = () => {
+        point += 1;
+    };
+
 </script>
 
 <svelte:head>
     <link rel="preload" as="image" href={spaceImage} />
 </svelte:head>
+
+
+<!-- Mobile Only Content -->
+<div 
+    class="md:hidden space-container text-white relative"
+    style="min-height: 100vh;">
+    
+    <!-- Background image with loading state -->
+    <img
+        src={spaceImage}
+        alt="space background"
+        class="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 -z-10"
+        class:opacity-0={!imageLoaded}
+        onload={handleImageLoad}
+        loading="eager"
+        decoding="async"
+    />
+
+    <!-- Loading placeholder -->
+    {#if !imageLoaded}
+        <div class="absolute inset-0 bg-gradient-to-b from-[#0B0B3B] to-[#000033]"></div>
+    {/if}
+
+    <!-- Stars background -->
+    <div class="stars">
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="space-header">
+        <h1 class="space-title">SOLAR SYSTEM</h1>
+        <p class="space-subtitle">Jelajahi Keajaiban Tata Surya</p>
+        <p class="space-subtitle">Point Kamu adalah {point}</p>
+    </div>
+
+    <!-- Planets Grid -->
+    <div class="gap-8 grid-cols-1 grid justify-items-center items-center px-4 pb-20 relative z-3">
+        {#each planets as planet, index}
+            <div 
+                class="planet-container {planet.position} mb-8"
+                style="--planet-color: {planet.color}"
+                class:selected={selectedPlanet === planet}
+                onclick={() => selectPlanet(planet)}
+                onkeydown={(e) => e.key === 'Enter' && selectPlanet(planet)}
+                role="button"
+                tabindex="0"
+            >
+                <img 
+                    src={planet.image} 
+                    width={planet.width} 
+                    height={planet.height} 
+                    alt={planet.name}
+                    class="planet-image {planet.animation}"
+                />
+            </div>
+        {/each}
+    </div>
+
+    <!-- Planet Info Modal -->
+    {#if selectedPlanet}
+        <div 
+            class="planet-info"
+            style="--planet-color: {selectedPlanet.color}"
+        >
+            <h3>{selectedPlanet.name}</h3>
+            <p>{selectedPlanet.question}</p>
+            <button onclick={handlePoint} >{selectedPlanet.answer}</button>
+            <button 
+                class="close-btn"
+                onclick={() => selectedPlanet = null}
+            >
+                Tutup
+            </button>
+        </div>
+    {/if}
+</div>
+
+<!-- Desktop Warning Message -->
+<div class="hidden md:flex min-h-screen items-center justify-center desktop-warning">
+    <div class="text-center p-8 warning-card">
+        <div class="text-6xl mb-4">🌌</div>
+        <h1 class="text-3xl font-bold mb-4">Eksplorasi Mobile</h1>
+        <p class="text-lg opacity-90 mb-4">
+            Pengalaman tata surya ini dirancang khusus untuk perangkat mobile
+        </p>
+        <p class="text-sm opacity-75">
+            Silakan buka di smartphone atau tablet untuk menjelajahi planet-planet
+        </p>
+    </div>
+</div>
+
 
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
@@ -362,94 +477,3 @@
     }
 </style>
 
-<!-- Mobile Only Content -->
-<div 
-    class="md:hidden space-container text-white relative"
-    style="min-height: 100vh;">
-    
-    <!-- Background image with loading state -->
-    <img
-        src={spaceImage}
-        alt="space background"
-        class="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 -z-10"
-        class:opacity-0={!imageLoaded}
-        on:load={handleImageLoad}
-        loading="eager"
-        decoding="async"
-    />
-
-    <!-- Loading placeholder -->
-    {#if !imageLoaded}
-        <div class="absolute inset-0 bg-gradient-to-b from-[#0B0B3B] to-[#000033]"></div>
-    {/if}
-
-    <!-- Stars background -->
-    <div class="stars">
-        <div class="star"></div>
-        <div class="star"></div>
-        <div class="star"></div>
-        <div class="star"></div>
-        <div class="star"></div>
-        <div class="star"></div>
-    </div>
-
-    <!-- Header -->
-    <div class="space-header">
-        <h1 class="space-title">SOLAR SYSTEM</h1>
-        <p class="space-subtitle">Jelajahi Keajaiban Tata Surya</p>
-    </div>
-
-    <!-- Planets Grid -->
-    <div class="gap-8 grid-cols-1 grid justify-items-center items-center px-4 pb-20 relative z-3">
-        {#each planets as planet, index}
-            <div 
-                class="planet-container {planet.position} mb-8"
-                style="--planet-color: {planet.color}"
-                class:selected={selectedPlanet === planet}
-                on:click={() => selectPlanet(planet)}
-                on:keydown={(e) => e.key === 'Enter' && selectPlanet(planet)}
-                role="button"
-                tabindex="0"
-            >
-                <img 
-                    src={planet.image} 
-                    width={planet.width} 
-                    height={planet.height} 
-                    alt={planet.name}
-                    class="planet-image {planet.animation}"
-                />
-            </div>
-        {/each}
-    </div>
-
-    <!-- Planet Info Modal -->
-    {#if selectedPlanet}
-        <div 
-            class="planet-info"
-            style="--planet-color: {selectedPlanet.color}"
-        >
-            <h3>{selectedPlanet.name}</h3>
-            <p>{selectedPlanet.description}</p>
-            <button 
-                class="close-btn"
-                on:click={() => selectedPlanet = null}
-            >
-                Tutup
-            </button>
-        </div>
-    {/if}
-</div>
-
-<!-- Desktop Warning Message -->
-<div class="hidden md:flex min-h-screen items-center justify-center desktop-warning">
-    <div class="text-center p-8 warning-card">
-        <div class="text-6xl mb-4">🌌</div>
-        <h1 class="text-3xl font-bold mb-4">Eksplorasi Mobile</h1>
-        <p class="text-lg opacity-90 mb-4">
-            Pengalaman tata surya ini dirancang khusus untuk perangkat mobile
-        </p>
-        <p class="text-sm opacity-75">
-            Silakan buka di smartphone atau tablet untuk menjelajahi planet-planet
-        </p>
-    </div>
-</div>
