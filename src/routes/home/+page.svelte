@@ -11,18 +11,68 @@
     import jupiter from '$lib/assets/jupiter.png';
     import { onMount, onDestroy } from 'svelte';
     import { goto } from '$app/navigation';
-    
+    import { db } from "../../firebase";
+    import { doc, updateDoc, setDoc } from "firebase/firestore";
 
     let selectedPlanet: any = $state(null);
     let point = $state(0);
     let answered = $state(false);
     let isCorrect = $state(false);
+    let userData: any = null;
 
-    const checkAnswer = (answer: string) => {
+    onMount(() => {
+        // Get user data from localStorage
+        const userDataStr = localStorage.getItem('userData');
+        if (userDataStr) {
+            userData = JSON.parse(userDataStr);
+        }
+        
+        // Check every second
+        intervalId = setInterval(() => {
+            const userDataStr = localStorage.getItem('userData');
+            if (!userDataStr) {
+                goto('/');
+                return;
+            }
+
+            try {
+                const userData = JSON.parse(userDataStr);
+                const now = new Date().getTime();
+
+                if (now > userData.expiry) {
+                    localStorage.removeItem('userData');
+                    goto('/');
+                }
+            } catch (error) {
+                localStorage.removeItem('userData');
+                goto('/');
+            }
+        }, 1000); // Check setiap 1 detik
+    });
+
+    onDestroy(() => {
+        if (intervalId) {
+            clearInterval(intervalId);
+        }
+    });
+
+    const checkAnswer = async (answer: string) => {
         answered = true;
         if (answer === selectedPlanet.kunciJawaban) {
             isCorrect = true;
-            point += 1;
+            point += 10; // Each correct answer worth 10 points
+            
+            try {
+                // Save points to Firestore
+                await setDoc(doc(db, "scores", userData.id), {
+                    userId: userData.id,
+                    username: userData.username,
+                    points: point,
+                    updatedAt: new Date()
+                });
+            } catch (error) {
+                console.error("Error saving score:", error);
+            }
         } else {
             isCorrect = false;
         }
@@ -158,36 +208,6 @@
 
     // Handle point
     let intervalId: any;
-
-    onMount(() => {
-        // Check every second
-        intervalId = setInterval(() => {
-            const userDataStr = localStorage.getItem('userData');
-            if (!userDataStr) {
-                goto('/');
-                return;
-            }
-
-            try {
-                const userData = JSON.parse(userDataStr);
-                const now = new Date().getTime();
-
-                if (now > userData.expiry) {
-                    localStorage.removeItem('userData');
-                    goto('/');
-                }
-            } catch (error) {
-                localStorage.removeItem('userData');
-                goto('/');
-            }
-        }, 1000); // Check setiap 1 detik
-    });
-
-    onDestroy(() => {
-        if (intervalId) {
-            clearInterval(intervalId);
-        }
-    });
 </script>
 
 
