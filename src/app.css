@@ -1,1 +1,258 @@
 @import 'tailwindcss';
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+    /* Animasi yang sudah ada */
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(-15px) rotate(5deg); }
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+
+    @keyframes spin {
+        from { transform: rotateY(0deg); }
+        to { transform: rotateY(360deg); }
+    }
+
+    @keyframes wobble {
+        0%, 100% { transform: rotate(-3deg); }
+        50% { transform: rotate(3deg); }
+    }
+
+    @keyframes orbit {
+        from { transform: rotate(0deg) translateX(10px) rotate(0deg); }
+        to { transform: rotate(360deg) translateX(10px) rotate(-360deg); }
+    }
+
+    @keyframes glow {
+        0%, 100% { 
+            filter: brightness(100%) drop-shadow(0 0 5px rgba(255,255,255,0.7)); 
+        }
+        50% { 
+            filter: brightness(120%) drop-shadow(0 0 20px rgba(255,255,255,0.9)); 
+        }
+    }
+
+    /* Animasi baru */
+    @keyframes twinkle {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 1; }
+    }
+
+    @keyframes slideInFromTop {
+        0% { transform: translateY(-100px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes fadeInUp {
+        0% { transform: translateY(30px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Classes untuk animasi */
+    .rotate { animation: rotate 20s linear infinite; }
+    .bounce { animation: bounce 3s ease-in-out infinite; }
+    .pulse { animation: pulse 4s ease-in-out infinite; }
+    .float { animation: float 5s ease-in-out infinite; }
+    .shake { animation: shake 2s ease-in-out infinite; }
+    .spin { animation: spin 15s linear infinite; }
+    .wobble { animation: wobble 3s ease-in-out infinite; }
+    .orbit { animation: orbit 8s linear infinite; }
+    .glow { animation: glow 4s ease-in-out infinite; }
+
+    /* Styling untuk container utama */
+    .space-container {
+        font-family: 'Orbitron', monospace;
+        position: relative;
+        overflow-x: hidden;
+    }
+
+    .space-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+            45deg,
+            rgba(0, 0, 0, 0.3) 0%,
+            rgba(25, 25, 112, 0.2) 50%,
+            rgba(0, 0, 0, 0.3) 100%
+        );
+        z-index: 1;
+    }
+
+    /* Stars background */
+    .stars {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: 2;
+    }
+
+    .star {
+        position: absolute;
+        background: white;
+        border-radius: 50%;
+        opacity: 0.8;
+        animation: twinkle 2s linear infinite;
+    }
+
+    /* Planet styling */
+    .planet-container {
+        position: relative;
+        z-index: 3;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-radius: 50%;
+        padding: 10px;
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    }
+
+    .planet-container:hover {
+        transform: scale(1.1);
+        filter: brightness(1.2);
+    }
+
+    .planet-container.selected {
+        box-shadow: 0 0 30px var(--planet-color);
+        transform: scale(1.15);
+    }
+
+    .planet-image {
+        border-radius: 50%;
+        transition: all 0.3s ease;
+        filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+    }
+
+    /* Header styling */
+    .space-header {
+        position: relative;
+        z-index: 4;
+        text-align: center;
+        padding: 2rem 1rem;
+    }
+
+    .space-title {
+        font-size: 2.5rem;
+        font-weight: 900;
+        background: linear-gradient(45deg, #FFD700, #FFA500, #FF6347);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        margin-bottom: 0.5rem;
+    }
+
+    .space-subtitle {
+        font-size: 1rem;
+        color: #E6E6FA;
+        font-weight: 400;
+        opacity: 0.9;
+    }
+
+    /* Planet info modal */
+    .planet-info {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, rgba(25, 25, 112, 0.95), rgba(0, 0, 0, 0.95));
+        backdrop-filter: blur(10px);
+        border-top: 2px solid var(--planet-color);
+        padding: 1.5rem;
+        z-index: 10;
+        animation: fadeInUp 0.5s ease-out;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .planet-info h3 {
+        color: var(--planet-color);
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 0 10px var(--planet-color);
+    }
+
+    .planet-info p {
+        color: #E6E6FA;
+        font-size: 1rem;
+        line-height: 1.5;
+        margin-bottom: 1rem;
+    }
+
+    .answers {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin-bottom: 2rem;
+    }
+ 
+
+    .answer-button {
+        background-color: var(--planet-color);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-family: 'Orbitron', monospace;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .answer-button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 15px var(--planet-color);
+        background-color: white
+    }
+
+    .close-btn {
+        background: var(--planet-color);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-family: 'Orbitron', monospace;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .close-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 15px var(--planet-color);
+    }
+
+    /* Desktop warning enhancement */
+    .desktop-warning {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Orbitron', monospace;
+    }
+
+    .warning-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+    }
