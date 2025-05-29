@@ -14,6 +14,26 @@
     
 
     let selectedPlanet: any = $state(null);
+    let point = $state(0);
+    let answered = $state(false);
+    let isCorrect = $state(false);
+
+    const checkAnswer = (answer: string) => {
+        answered = true;
+        if (answer === selectedPlanet.kunciJawaban) {
+            isCorrect = true;
+            point += 1;
+        } else {
+            isCorrect = false;
+        }
+    };
+
+    const nextQuestion = () => {
+        selectedPlanet = null;
+        answered = false;
+        isCorrect = false;
+    };
+
     const planets = [
         {
             name: "Matahari",
@@ -47,6 +67,7 @@
             animation: "pulse",
             question: "Suatu tindakan maupun ucapan yang lurus, tidak berbohong dan tidak curang disebut… ",
             answer: ["Keadilan", "Tanggung Jawab", "Kejujuran", "Kesederhanaan"],
+            kunciJawaban: "Kejujuran",
             color: "#FFC649"
         },
         {
@@ -58,6 +79,7 @@
             animation: "float",
             question: "Komponen dari pengertian korupsi di bawah ini yang tidak benar adalah … ",
             answer: ["Suatu perilaku yang terkait penyalahgunaan wewenang atau kekuasaan","Perbuatan tersebut memperkaya diri sendiri dan/atau kelompok","Merugikan keuangan negara","Perbuatannya ditujukan untuk mensejahterakan rakyat"],
+            kunciJawaban: "Perbuatannya ditujukan untuk mensejahterakan rakyat",
             color: "#6B93D6"
         },
         {
@@ -69,6 +91,7 @@
             animation: "shake",
             question: "Lembaga yang khusus dibentuk oleh Undang-Undang untuk mencegah dan memberantas korupsi di Indonesia adalah… ",
             answer: ["Dewan Perwakilan Rakyat Republik Indonesia", "Komisi Pemberantasan Korupsi Republik Indonesia", "Mahkamah Agung Republik Indonesia", "Komisi Yudisial Republik Indonesia"],
+            kunciJawaban: "Komisi Pemberantasan Korupsi Republik Indonesia",
             color: "#CD5C5C"
         },
         {
@@ -80,6 +103,7 @@
             animation: "float",
             question: "Petty Corruption adalah…",
             answer: ["Penyalahgunaan kekuatan tingkat tinggi yang menguntungkan segelintir orang dengan mengorbankan banyak orang.", "Penyalahgunaan kekuasaan oleh pejabat publik dalam interaksi mereka dengan warga biasa di kehidupan sehari-hari.", "Manipulasi kebijakan, institusi dan dan aturan prosedur oleh para pengambil keputusan politik, yang menyalahgunakan posisinya untuk mempertahankan kekuasaan, status, dan kekayaannya.", "Perbuatan mengambil barang milik orang lain untuk dikuasai sendiri dengan ancaman kekerasan."],
+            kunciJawaban: "Penyalahgunaan kekuasaan oleh pejabat publik dalam interaksi mereka dengan warga biasa di kehidupan sehari-hari.",
             color: "#D8CA9D"
         },
         {
@@ -91,6 +115,7 @@
             animation: "wobble",
             question: "Berikut jenis-jenis tindak pidana korupsi, kecuali: … ",
             answer: ["Gratifikasi, Suap-Menyuap dan Penggelapan dalam jabatan", "Kerugian keuangan negara, benturan kepentingan dalam pengadaan, dan merintangi pemeriksanaan ", "Pencurian, Pemerasan, dan Gratifikasi", "Perbuatan curang, suap-menyuap dan pemerasan."],
+            kunciJawaban: "Pencurian, Pemerasan, dan Gratifikasi",
             color: "#FAD5A5"
         },
         {
@@ -100,8 +125,9 @@
             height: 150,
             position: "mr-52",
             animation: "orbit",
-            question: "Money Laundry adalah… kecuali ",
-            answer: ["Menyembunyikan atau menyamarkan asal-usul, sumber, lokasi, peruntukan, pengalihan hak-hak atau kepemilikan yang sebenarnya atas harta kekayaan yang diketahuinya atau patut diduganya merupakan hasil tindak pidana", "Menerima, atau menguasai penempatan, pentransferan, pembayaran, hibah, sumbangan, penitipan, penukaran, atau menggunakan harta kekayaan yang diketahuinya atau patut diduga merupakan hasil tindak pidana", "Menempatkan, mentransfer, mengalihkan, membelanjakan, membayarkan, menghibahkan, menitipkan, membawa ke luar negeri, mengubah bentuk, menukarkan dengan mata uang atau surat berharga, atau perbuatan lain yang diketahui atau patut diduga merupakan hasil tindak pidana.", "Pemberian dalam arti luas meliputi pemberian uang, fasilitas penginapan, tiket perjalanan dan sebagainya. "],
+            question: "Fraud Triangle merupakan teori yang menjelaskan faktor-faktor penyebab korupsi. Penjelasan mengenai Fraud Triangle yang benar adalah.. ",
+            answer:["Capability, Rationalization,Pressure", "Pressure, Opportunity, Rationalization", "Pressure, Rationalization, Capability", "Opportunity, Capability, Rationalization"],
+            kunciJawaban: "Pressure, Opportunity, Rationalization",
             color: "#4FD0E7"
         },
         {
@@ -113,6 +139,7 @@
             animation: "glow",
             question: "Jenis-jenis perilaku koruptif yang sering dilakukan siswa yang paling tepat adalah… ",
             answer: ["Terlambat, mencontek, plagiat, mark up uang buku, dan bolos", "Plagiat, berbohong, mencuri, dan suap", "Mencontek, tawuran, suap, gratifikasi", "Gratifikasi, Penyalahgunaan Dana Beasiswa, Mark-up uang sekolah dan penipuan"],
+            kunciJawaban:"Terlambat, mencontek, plagiat, mark up uang buku, dan bolos",
             color: "#4B70DD"
         }
     ];
@@ -130,12 +157,6 @@
     }
 
     // Handle point
-    let point = $state(0);
-
-    const handlePoint = () => {
-        point += 1;
-    };
-
     let intervalId: any;
 
     onMount(() => {
@@ -169,9 +190,6 @@
     });
 </script>
 
-<svelte:head>
-    <link rel="preload" as="image" href={spaceImage} />
-</svelte:head>
 
 <!-- Mobile Only Content -->
 <div class="md:hidden space-container text-white relative min-h-screen">
@@ -221,18 +239,39 @@
     </div>
 
     {#if selectedPlanet}
-        <div class="planet-info " style="--planet-color: {selectedPlanet.color}">
+        <div class="planet-info" style="--planet-color: {selectedPlanet.color}">
             <h3>{selectedPlanet.name}</h3>
             <p>{selectedPlanet.question}</p>
             <br>
-            <div class="answers text-sm ">
-                {#each selectedPlanet.answer as answer}
-                    <button class="answer-button " onclick={handlePoint}>{answer}</button>
-                {/each}
+            <div class="answers text-sm">
+                {#if !answered}
+                    {#each selectedPlanet.answer as answer}
+                        <button 
+                            class="answer-button"
+                            onclick={() => checkAnswer(answer)}
+                        >
+                            {answer}
+                        </button>
+                    {/each}
+                {:else}
+                    <div class="feedback-message text-center mb-4">
+                        {#if isCorrect}
+                            <p class="text-green-400 font-bold text-lg">Jawaban Benar! 🎉</p>
+                        {:else}
+                            <p class="text-red-400 font-bold text-lg">
+                                Jawaban Salah! ❌<br>
+                                <span class="text-white text-sm">Jawaban yang benar: {selectedPlanet.kunciJawaban}</span>
+                            </p>
+                        {/if}
+                    </div>
+                {/if}
             </div>
             <br>
-            <button class="close-btn" onclick={() => selectedPlanet = null}>
-                Tutup
+            <button 
+                class="close-btn" 
+                onclick={nextQuestion}
+            >
+                {answered ? 'Lanjut' : 'Tutup'}
             </button>
         </div>
     {/if}

@@ -248,16 +248,20 @@
 
 /* Planet info modal */
 .planet-info {
-	position: fixed;
-	bottom: 0;
-	left: 0;
-	right: 0;
+	position: fixed; /* Change to fixed */
+	top: 0; /* Position from top */
+	left: 0; /* Position from left */
+	right: 0; /* Stretch to right */
+	bottom: 0; /* Stretch to bottom */
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
 	background: linear-gradient(135deg, rgba(25, 25, 112, 0.95), rgba(0, 0, 0, 0.95));
 	backdrop-filter: blur(10px);
 	border-top: 2px solid var(--planet-color);
 	padding: 1.5rem;
-	z-index: 10;
-	border-radius: 20px 20px 0 0;
+	z-index: 9999;
 }
 
 .planet-info h3 {
@@ -268,13 +272,18 @@
 	text-shadow: 0 0 10px var(--planet-color);
 }
 
-
+.planet-info p {
+	text-align: center;
+}
 
 .answers {
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
 	margin-bottom: 2rem;
+	width: 100%; /* Make answers take full width */
+	max-width: 400px; /* Limit maximum width */
+	padding: 0 1rem; /* Add some padding */
 }
 
 .answer-button {
