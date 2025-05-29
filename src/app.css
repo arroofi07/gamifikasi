@@ -203,6 +203,7 @@
 	border-radius: 50%;
 	padding: 10px;
 	box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+	text-align: center;
 }
 
 .planet-container:hover {
@@ -219,6 +220,57 @@
 	border-radius: 50%;
 	transition: all 0.3s ease;
 	filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+}
+
+.feedback-message {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+}
+
+.success-feedback {
+    background: rgba(52, 211, 153, 0.1);
+    border: 1px solid rgba(52, 211, 153, 0.2);
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.error-feedback {
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.completed-label {
+    position: absolute;
+    bottom: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(52, 211, 153, 0.9);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+}
+
+.planet-container.completed {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.planet-container.completed::after {
+    content: '🔒';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 /* Header styling */
@@ -335,3 +387,4 @@
 	border: 1px solid rgba(255, 255, 255, 0.2);
 	color: white;
 }
+

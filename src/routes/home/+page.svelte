@@ -19,6 +19,7 @@
     let answered = $state(false);
     let isCorrect = $state(false);
     let userData: any = null;
+    let completedQuestions = $state(new Set());
 
     onMount(() => {
         // Get user data from localStorage
@@ -60,21 +61,34 @@
         answered = true;
         if (answer === selectedPlanet.kunciJawaban) {
             isCorrect = true;
-            point += 10; // Each correct answer worth 10 points
-            
-            try {
-                // Save points to Firestore
-                await setDoc(doc(db, "scores", userData.id), {
-                    userId: userData.id,
-                    username: userData.username,
-                    points: point,
-                    updatedAt: new Date()
-                });
-            } catch (error) {
-                console.error("Error saving score:", error);
-            }
+            point += 10; // Add points only for correct answer
         } else {
             isCorrect = false;
+            // No points deducted for wrong answer
+        }
+        
+        // Add to completed questions regardless of correct/incorrect
+        completedQuestions.add(selectedPlanet.name);
+        
+        try {
+            await setDoc(doc(db, "scores", userData.id), {
+                userId: userData.id,
+                username: userData.username,
+                points: point,
+                completedQuestions: Array.from(completedQuestions),
+                updatedAt: new Date()
+            });
+
+            // Check if all planets are completed
+            if (completedQuestions.size === planets.length) {
+                // Show completion message
+                alert("Selamat! Anda telah menyelesaikan semua soal!");
+                // Clear localStorage and redirect
+                localStorage.removeItem('userData');
+                goto('/');
+            }
+        } catch (error) {
+            console.error("Error saving score:", error);
         }
     };
 
@@ -239,11 +253,12 @@
     <div class="gap-8 grid-cols-1 grid justify-items-center items-center mb-52 px-4 pb-20 relative z-3">
         {#each planets as planet}
             <div 
-                class="planet-container {planet.position} mb-8"
+                class="planet-container {planet.position} mb-8 relative"
                 style="--planet-color: {planet.color}"
                 class:selected={selectedPlanet === planet}
-                onclick={() => selectPlanet(planet)}
-                onkeydown={(e) => e.key === 'Enter' && selectPlanet(planet)}
+                class:completed={completedQuestions.has(planet.name)}
+                onclick={() => !completedQuestions.has(planet.name) && selectPlanet(planet)}
+                onkeydown={(e) => e.key === 'Enter' && !completedQuestions.has(planet.name) && selectPlanet(planet)}
                 role="button"
                 tabindex="0"
             >
@@ -254,6 +269,10 @@
                     alt={planet.name}
                     class="planet-image {planet.animation}"
                 />
+                
+                {#if completedQuestions.has(planet.name)}
+                    <div class="completed-label">Done ✓</div>
+                {/if}
             </div>
         {/each}
     </div>
@@ -261,13 +280,13 @@
     {#if selectedPlanet}
         <div class="planet-info" style="--planet-color: {selectedPlanet.color}">
             <h3>{selectedPlanet.name}</h3>
-            <p>{selectedPlanet.question}</p>
-            <br>
-            <div class="answers text-sm">
+            <p class="mb-4">{selectedPlanet.question}</p>
+            
+            <div class="answers">
                 {#if !answered}
                     {#each selectedPlanet.answer as answer}
                         <button 
-                            class="answer-button"
+                            class="answer-button w-full"
                             onclick={() => checkAnswer(answer)}
                         >
                             {answer}
@@ -276,19 +295,23 @@
                 {:else}
                     <div class="feedback-message text-center mb-4">
                         {#if isCorrect}
-                            <p class="text-green-400 font-bold text-lg">Jawaban Benar! 🎉</p>
+                            <div class="success-feedback">
+                                <p class="text-green-400 font-bold text-xl mb-2">✅ Jawaban Benar!</p>
+                                <p class="text-white text-sm">+10 points</p>
+                            </div>
                         {:else}
-                            <p class="text-red-400 font-bold text-lg">
-                                Jawaban Salah! ❌<br>
-                                <span class="text-white text-sm">Jawaban yang benar: {selectedPlanet.kunciJawaban}</span>
-                            </p>
+                            <div class="error-feedback">
+                                <p class="text-red-400 font-bold text-xl mb-2">❌ Jawaban Salah!</p>
+                                <p class="text-white text-sm">Jawaban yang benar:</p>
+                                <p class="text-white font-bold mt-1">{selectedPlanet.kunciJawaban}</p>
+                            </div>
                         {/if}
                     </div>
                 {/if}
             </div>
-            <br>
+
             <button 
-                class="close-btn" 
+                class="close-btn mt-4" 
                 onclick={nextQuestion}
             >
                 {answered ? 'Lanjut' : 'Tutup'}
