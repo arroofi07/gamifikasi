@@ -221,10 +221,11 @@
     </div>
 
     {#if selectedPlanet}
-        <div class="planet-info" style="--planet-color: {selectedPlanet.color}">
+        <div class="planet-info " style="--planet-color: {selectedPlanet.color}">
             <h3>{selectedPlanet.name}</h3>
             <p>{selectedPlanet.question}</p>
-            <div class="answers ">
+            <br>
+            <div class="answers text-sm ">
                 {#each selectedPlanet.answer as answer}
                     <button class="answer-button " onclick={handlePoint}>{answer}</button>
                 {/each}
