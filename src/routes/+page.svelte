@@ -3,9 +3,12 @@
     import { collection, addDoc, getDocs, query, orderBy, limit } from "firebase/firestore";
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
+    import vid from '../lib/assets/video.mp4';
     
     let username = "";
     let leaderboard: any[] = [];
+    let showVideo = true;
+    let removeVideo = false;
 
     onMount(async () => {
         // Fetch top 10 scores
@@ -13,6 +16,15 @@
         const q = query(scoresRef, orderBy("points", "desc"), limit(100));
         const querySnapshot = await getDocs(q);
         leaderboard = querySnapshot.docs.map(doc => doc.data());
+
+        // Hide video after 2 seconds
+        setTimeout(() => {
+            showVideo = false;
+            // Remove video from DOM after fade out animation
+            setTimeout(() => {
+                removeVideo = true;
+            }, 500); // Wait for fade out animation to complete
+        }, 2000);
     });
 
     const createUser = async () => {
@@ -27,6 +39,7 @@
                 username: username,
                 createdAt: new Date(),
             });
+
             
             const userData = {
                 id: docRef.id,
@@ -42,6 +55,17 @@
         }
     }
 </script>
+
+<!-- Video Intro -->
+{#if !removeVideo}
+    <div class="fixed inset-0 z-50 bg-black transition-opacity duration-500" 
+         class:opacity-0={!showVideo}>
+        <video autoplay muted class="w-full h-full object-cover">
+            <source src={vid} type="video/mp4" />
+            Your browser does not support the video tag.
+        </video>
+    </div>
+{/if}
 
 <div class="md:hidden min-h-screen bg-gradient-to-b from-blue-900 to-purple-900 text-white">
     <div class="container mx-auto px-4 py-8">
@@ -111,3 +135,13 @@
         </p>
     </div>
 </div>
+
+<style>
+    .opacity-0 {
+        opacity: 0;
+    }
+
+    .transition-opacity {
+        transition: opacity 0.5s ease-out;
+    }
+</style>

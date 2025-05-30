@@ -21,6 +21,10 @@
     let userData: any = null;
     let completedQuestions = $state(new Set());
 
+    // Add these with other state variables
+    let countdown = $state(5);
+    let showCompletionModal = $state(false);
+
     onMount(() => {
         // Get user data from localStorage
         const userDataStr = localStorage.getItem('userData');
@@ -61,13 +65,12 @@
         answered = true;
         if (answer === selectedPlanet.kunciJawaban) {
             isCorrect = true;
-            point += 10; // Add points only for correct answer
+
+            point += 10;
         } else {
             isCorrect = false;
-            // No points deducted for wrong answer
         }
         
-        // Add to completed questions regardless of correct/incorrect
         completedQuestions.add(selectedPlanet.name);
         
         try {
@@ -79,13 +82,16 @@
                 updatedAt: new Date()
             });
 
-            // Check if all planets are completed
             if (completedQuestions.size === planets.length) {
-                // Show completion message
-                alert("Selamat! Anda telah menyelesaikan semua soal!");
-                // Clear localStorage and redirect
-                localStorage.removeItem('userData');
-                goto('/');
+                showCompletionModal = true;
+                const timer = setInterval(() => {
+                    countdown--;
+                    if (countdown === 0) {
+                        clearInterval(timer);
+                        localStorage.removeItem('userData');
+                        goto('/');
+                    }
+                }, 1000);
             }
         } catch (error) {
             console.error("Error saving score:", error);
@@ -318,6 +324,18 @@
             </button>
         </div>
     {/if}
+
+    {#if showCompletionModal}
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+            <div class="bg-white/10 backdrop-blur-md p-8 rounded-lg shadow-lg text-center">
+                <h2 class="text-2xl font-bold mb-4">🎉 Selamat!</h2>
+                <p class="mb-4">Anda telah menyelesaikan semua soal!</p>
+                <p class="text-xl font-bold">Point Akhir: {point}</p>
+                <p class="mt-4">Kembali ke halaman utama dalam...</p>
+                <p class="text-4xl font-bold mt-2">{countdown}</p>
+            </div>
+        </div>
+    {/if}
 </div>
 
 <!-- Desktop Warning Message -->
@@ -334,3 +352,13 @@
     </div>
 </div>
 
+<style>
+    /* Add to your existing styles */
+    .backdrop-blur-md {
+        backdrop-filter: blur(8px);
+    }
+    
+    .bg-black\/80 {
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+</style>
