@@ -9,6 +9,11 @@
     import uranus from '$lib/assets/uranus.png';
     import neptune from '$lib/assets/neptune.png';
     import jupiter from '$lib/assets/jupiter.png';
+    import asteroid from '$lib/assets/asteroid.png';
+    import pluto from '$lib/assets/pluto.png';
+    import gj504 from '$lib/assets/gj504.png';
+    import nebula from '$lib/assets/nebula.png';
+    import iss from '$lib/assets/iss.png';
     import { onMount, onDestroy } from 'svelte';
     import { goto } from '$app/navigation';
     import { db } from "../../firebase";
@@ -110,11 +115,11 @@
             image: sunImage,
             width: 230,
             height: 230,
-            animation: "rotate",
+            animation: "glow",
             question: "Istilah korupsi dalam bahasa Latin yang benar adalah… ",
             answer: ["Corrupt", "Corruption", "Corrumpere", "Korruptie"],
             kunciJawaban: "Corrumpere",
-            color: "#FFD700",
+            color: "#6B93D6",
         },
         {
             name: "Merkurius",
@@ -126,7 +131,7 @@
             question: "Istilah korupsi dari bahasa Malaysia yang benar adalah… ",
             answer: ["Korupsi", "Rasuah", "Busuk", "Disuap"],
             kunciJawaban: "Rasuah",
-            color: "#8C7853"
+            color: "#6B93D6"
         },
         {
             name: "Venus",
@@ -138,7 +143,7 @@
             question: "Suatu tindakan maupun ucapan yang lurus, tidak berbohong dan tidak curang disebut… ",
             answer: ["Keadilan", "Tanggung Jawab", "Kejujuran", "Kesederhanaan"],
             kunciJawaban: "Kejujuran",
-            color: "#FFC649"
+            color: "#6B93D6"
         },
         {
             name: "Bumi",
@@ -146,7 +151,7 @@
             width: 100,
             height: 100,
             position: "ml-10",
-            animation: "float",
+            animation: "rotate",
             question: "Komponen dari pengertian korupsi di bawah ini yang tidak benar adalah … ",
             answer: ["Suatu perilaku yang terkait penyalahgunaan wewenang atau kekuasaan","Perbuatan tersebut memperkaya diri sendiri dan/atau kelompok","Merugikan keuangan negara","Perbuatannya ditujukan untuk mensejahterakan rakyat"],
             kunciJawaban: "Perbuatannya ditujukan untuk mensejahterakan rakyat",
@@ -162,7 +167,7 @@
             question: "Lembaga yang khusus dibentuk oleh Undang-Undang untuk mencegah dan memberantas korupsi di Indonesia adalah… ",
             answer: ["Dewan Perwakilan Rakyat Republik Indonesia", "Komisi Pemberantasan Korupsi Republik Indonesia", "Mahkamah Agung Republik Indonesia", "Komisi Yudisial Republik Indonesia"],
             kunciJawaban: "Komisi Pemberantasan Korupsi Republik Indonesia",
-            color: "#CD5C5C"
+            color: "#6B93D6"
         },
         {
             name: "Jupiter",
@@ -174,7 +179,7 @@
             question: "Petty Corruption adalah…",
             answer: ["Penyalahgunaan kekuatan tingkat tinggi yang menguntungkan segelintir orang dengan mengorbankan banyak orang.", "Penyalahgunaan kekuasaan oleh pejabat publik dalam interaksi mereka dengan warga biasa di kehidupan sehari-hari.", "Manipulasi kebijakan, institusi dan dan aturan prosedur oleh para pengambil keputusan politik, yang menyalahgunakan posisinya untuk mempertahankan kekuasaan, status, dan kekayaannya.", "Perbuatan mengambil barang milik orang lain untuk dikuasai sendiri dengan ancaman kekerasan."],
             kunciJawaban: "Penyalahgunaan kekuasaan oleh pejabat publik dalam interaksi mereka dengan warga biasa di kehidupan sehari-hari.",
-            color: "#D8CA9D"
+            color: "#6B93D6"
         },
         {
             name: "Saturnus",
@@ -186,7 +191,7 @@
             question: "Berikut jenis-jenis tindak pidana korupsi, kecuali: … ",
             answer: ["Gratifikasi, Suap-Menyuap dan Penggelapan dalam jabatan", "Kerugian keuangan negara, benturan kepentingan dalam pengadaan, dan merintangi pemeriksanaan ", "Pencurian, Pemerasan, dan Gratifikasi", "Perbuatan curang, suap-menyuap dan pemerasan."],
             kunciJawaban: "Pencurian, Pemerasan, dan Gratifikasi",
-            color: "#FAD5A5"
+            color: "#6B93D6"
         },
         {
             name: "Uranus",
@@ -198,7 +203,7 @@
             question: "Fraud Triangle merupakan teori yang menjelaskan faktor-faktor penyebab korupsi. Penjelasan mengenai Fraud Triangle yang benar adalah.. ",
             answer:["Capability, Rationalization,Pressure", "Pressure, Opportunity, Rationalization", "Pressure, Rationalization, Capability", "Opportunity, Capability, Rationalization"],
             kunciJawaban: "Pressure, Opportunity, Rationalization",
-            color: "#4FD0E7"
+            color: "#6B93D6"
         },
         {
             name: "Neptunus",
@@ -210,8 +215,69 @@
             question: "Jenis-jenis perilaku koruptif yang sering dilakukan siswa yang paling tepat adalah… ",
             answer: ["Terlambat, mencontek, plagiat, mark up uang buku, dan bolos", "Plagiat, berbohong, mencuri, dan suap", "Mencontek, tawuran, suap, gratifikasi", "Gratifikasi, Penyalahgunaan Dana Beasiswa, Mark-up uang sekolah dan penipuan"],
             kunciJawaban:"Terlambat, mencontek, plagiat, mark up uang buku, dan bolos",
-            color: "#4B70DD"
-        }
+            color: "#6B93D6"
+        },
+           {
+            name: "Pluto",
+            image: pluto,
+            width: 75,
+            height: 75,
+            position: "mr-3",
+            animation: "float",
+            question: "GONE Theory yang dikemukakan oleh Jack Bologne, merupakan singkatan dari:…",
+            answer: ["Greeds, Opportunities, Needs, Exposure", "Greeds, Option, Needs, Exposure", "Greats, Opportunities, Needs, Exposure", "Greats, Option, Needs, Exposure"],
+            kunciJawaban: "Greeds, Opportunities, Needs, Exposure",
+            color: "#6B93D6"
+        },
+          {
+            name: "Asteroid",
+            image: asteroid,
+            width: 60,
+            height: 60,
+            position: "mr-52",
+            animation: "rotate",
+            question: "Dampak langsung dari korupsi adalah … ",
+            answer: ["Kerusakan lingkungan", "Meningkatknya hutang negara", "Kerugian Negara", "Mahalnya harga jasa dan pelayanan public"],
+            kunciJawaban: "Kerugian Negara",
+            color: "#6B93D6"
+        },
+             {
+            name: "Nebula",
+            image: nebula,
+            width: 100,
+            height: 100,
+            position: "ml-10",
+            animation: "glow",
+            question: "Dasar hukum pemberantasan tindak pidana korupsi adalah… ",
+            answer: ["Undang-Undang Nomor 12 Tahun 2011","Undang – Undang Dasar Tahun 1945"," Undang-Undang Nomor 31 Tahun 1999","Undang-Undang Nomor 8 Tahun 1981"],
+            kunciJawaban: "Undang-Undang Nomor 31 Tahun 1999",
+            color: "#6B93D6"
+        },
+              {
+            name: "Stasiun Luar Angkasa ",
+            image: iss,
+            width: 65,
+            height: 65,
+            position: "ml-52",
+            animation: "shake",
+            question: "Nilai nilai yang harus ditanamkan sebagai sikap anti korupsi, kecuali:… ",
+            answer: ["Kejujuran, Kemandirian dan Kerja Keras", "Tanggung Jawab, Adil dan Berani", "Sederhana, Peduli, dan Disiplin", "Adil, Peduli, Pantang Menyerah"],
+            kunciJawaban: "Adil, Peduli, Pantang Menyerah",
+            color: "#6B93D6"
+        },
+        //    {
+        //     name: "GJ-504",
+        //     image: gj504,
+        //     width: 200,
+        //     height: 200,
+        //     position: "ml-2",
+        //     animation: "glow",
+        //     question: "test",
+        //     answer: ["test"],
+        //     kunciJawaban: "test",
+        //     color: "#6B93D6"
+        // },
+        
     ];
 
     function selectPlanet(planet: any) {
@@ -252,7 +318,7 @@
 
     <div class="space-header">
         <h1 class="space-title">SOLAR SYSTEM</h1>
-        <p class="space-subtitle">Jelajahi Keajaiban Tata Surya</p>
+        <p class="space-subtitle">Ayo Jawab Soal yang Ada di Setiap Planet</p>
         <p class="space-subtitle">Point Kamu adalah {point}</p>
     </div>
 
