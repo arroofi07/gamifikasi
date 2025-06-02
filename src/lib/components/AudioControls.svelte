@@ -16,17 +16,12 @@
             settings = s;
         });
 
-        // Load sound effects
-        if (audioManager) {
-            // These are placeholder URLs - you'll need to add actual sound files
-            audioManager.loadSound('click', '/sounds/click.mp3');
-            audioManager.loadSound('correct', '/sounds/correct.mp3');
-            audioManager.loadSound('incorrect', '/sounds/incorrect.mp3');
-            audioManager.loadSound('achievement', '/sounds/achievement.mp3');
-            audioManager.loadSound('countdown', '/sounds/countdown.mp3');
-            
-            // Play background music
-            audioManager.playBackgroundMusic('/sounds/space-ambient.mp3');
+        // Start background music if enabled
+        if (audioManager && settings.musicEnabled) {
+            // Add a small delay to ensure user interaction
+            setTimeout(() => {
+                audioManager.startBackgroundMusic();
+            }, 1000);
         }
 
         return () => {
@@ -41,11 +36,22 @@
         audioSettings.toggleMusic();
         if (audioManager) {
             audioManager.playSound('click');
+            // Start background music on first interaction if enabled
+            if (settings.musicEnabled) {
+                audioManager.startBackgroundMusic();
+            }
         }
     }
 
     function toggleSound() {
         audioSettings.toggleSound();
+        if (audioManager && settings.soundEnabled) {
+            audioManager.playSound('click');
+        }
+    }
+
+    function handleVolumeChange() {
+        // Test sound when adjusting volume
         if (audioManager && settings.soundEnabled) {
             audioManager.playSound('click');
         }
@@ -59,13 +65,20 @@
     function updateSoundVolume(e: Event) {
         const target = e.target as HTMLInputElement;
         audioSettings.updateSettings({ soundVolume: parseFloat(target.value) });
+        handleVolumeChange();
     }
 </script>
 
 <!-- Audio Control Button -->
 <button
     class="fixed top-4 right-4 z-50 bg-white/10 backdrop-blur-md p-3 rounded-full shadow-lg transition-all hover:bg-white/20"
-    onclick={() => showControls = !showControls}
+    onclick={() => {
+        showControls = !showControls;
+        // Start background music on first interaction if enabled
+        if (audioManager && settings.musicEnabled && !showControls) {
+            audioManager.startBackgroundMusic();
+        }
+    }}
 >
     {#if settings.musicEnabled || settings.soundEnabled}
         🔊

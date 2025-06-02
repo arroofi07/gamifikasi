@@ -1,5 +1,7 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
+import { synthesizedSounds, initializeAudioContext } from '$lib/utils/audioSynthesis';
+import backgroundMusicFile from '$lib/assets/sounds/backsound.mp3';
 
 interface AudioSettings {
     musicEnabled: boolean;
@@ -59,56 +61,60 @@ export const audioSettings = createAudioStore();
 
 // Audio manager class
 class AudioManager {
-    private sounds: Map<string, HTMLAudioElement> = new Map();
-    private backgroundMusic: HTMLAudioElement | null = null;
     private settings: AudioSettings = {
         musicEnabled: true,
         soundEnabled: true,
         musicVolume: 0.5,
         soundVolume: 0.7
     };
+    private backgroundMusic: HTMLAudioElement | null = null;
 
     constructor() {
         // Subscribe to settings changes
         audioSettings.subscribe(settings => {
             this.settings = settings;
-            this.updateVolumes();
+            this.updateBackgroundMusic();
         });
     }
 
-    // Load a sound effect
-    loadSound(name: string, url: string) {
-        if (!browser) return;
-        
-        const audio = new Audio(url);
-        audio.preload = 'auto';
-        this.sounds.set(name, audio);
-    }
-
-    // Play a sound effect
-    playSound(name: string) {
+    // Play a sound effect using Web Audio API
+    async playSound(name: string) {
         if (!browser || !this.settings.soundEnabled) return;
         
-        const sound = this.sounds.get(name);
-        if (sound) {
-            sound.volume = this.settings.soundVolume;
-            sound.currentTime = 0;
-            sound.play().catch(e => console.log('Sound play failed:', e));
+        // Initialize audio context on first sound
+        await initializeAudioContext();
+        
+        const soundFunction = synthesizedSounds[name as keyof typeof synthesizedSounds];
+        if (soundFunction) {
+            try {
+                soundFunction();
+            } catch (e) {
+                console.log('Sound play failed:', e);
+            }
         }
     }
 
-    // Load and play background music
-    playBackgroundMusic(url: string) {
+    // Start background music
+    async startBackgroundMusic() {
         if (!browser || !this.settings.musicEnabled) return;
         
-        if (this.backgroundMusic) {
-            this.backgroundMusic.pause();
-        }
+        // Initialize audio context first
+        await initializeAudioContext();
         
-        this.backgroundMusic = new Audio(url);
-        this.backgroundMusic.loop = true;
-        this.backgroundMusic.volume = this.settings.musicVolume;
-        this.backgroundMusic.play().catch(e => console.log('Music play failed:', e));
+        this.stopBackgroundMusic();
+        
+        try {
+            this.backgroundMusic = new Audio(backgroundMusicFile);
+            this.backgroundMusic.loop = true;
+            this.backgroundMusic.volume = this.settings.musicVolume;
+            
+            // Play with user interaction handling
+            this.backgroundMusic.play().catch(e => {
+                console.log('Background music play failed (likely no user interaction yet):', e);
+            });
+        } catch (e) {
+            console.log('Background music failed:', e);
+        }
     }
 
     // Stop background music
@@ -116,15 +122,19 @@ class AudioManager {
         if (this.backgroundMusic) {
             this.backgroundMusic.pause();
             this.backgroundMusic.currentTime = 0;
+            this.backgroundMusic = null;
         }
     }
 
-    // Update volumes based on settings
-    private updateVolumes() {
+    // Update background music based on settings
+    private updateBackgroundMusic() {
         if (this.backgroundMusic) {
             this.backgroundMusic.volume = this.settings.musicVolume;
+            
             if (this.settings.musicEnabled) {
-                this.backgroundMusic.play().catch(e => console.log('Music resume failed:', e));
+                this.backgroundMusic.play().catch(e => {
+                    console.log('Background music resume failed:', e);
+                });
             } else {
                 this.backgroundMusic.pause();
             }
@@ -134,7 +144,6 @@ class AudioManager {
     // Cleanup
     destroy() {
         this.stopBackgroundMusic();
-        this.sounds.clear();
     }
 }
 

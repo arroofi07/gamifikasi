@@ -5,7 +5,7 @@
     import { onMount } from 'svelte';
     import vid from '../lib/assets/video.mp4';
     import { gameSettings, type Difficulty } from '$lib/stores/gameSettings';
-    import { audioManager } from '$lib/stores/audio';
+    import { audioManager, audioSettings } from '$lib/stores/audio';
     import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
     import SkeletonLoader from '$lib/components/SkeletonLoader.svelte';
     
@@ -17,8 +17,14 @@
     let showSettings = $state(false);
     let isLoading = $state(true);
     let isCreatingUser = $state(false);
+    let audioSettingsData = $state({ musicEnabled: true, soundEnabled: true });
 
     onMount(async () => {
+        // Subscribe to audio settings
+        const unsubscribe = audioSettings.subscribe(settings => {
+            audioSettingsData = settings;
+        });
+        
         try {
             // Fetch top 10 scores
             const scoresRef = collection(db, "scores");
@@ -49,9 +55,13 @@
 
         isCreatingUser = true;
 
-        // Play click sound
+        // Play click sound and start background music
         if (audioManager) {
             audioManager.playSound('click');
+            // Start background music on user interaction if enabled
+            if (audioManager && audioSettingsData.musicEnabled) {
+                audioManager.startBackgroundMusic();
+            }
         }
 
         // Update game settings with selected difficulty

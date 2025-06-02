@@ -150,6 +150,11 @@
             
             // Play sound
             audioManager?.playSound('correct');
+            
+            // Play combo sound for streaks
+            if (combo >= 3) {
+                setTimeout(() => audioManager?.playSound('combo'), 200);
+            }
         } else {
             isCorrect = false;
             combo = 0;
