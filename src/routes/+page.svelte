@@ -4,18 +4,32 @@
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
     import vid from '../lib/assets/video.mp4';
+    import { gameSettings, type Difficulty } from '$lib/stores/gameSettings';
+    import { audioManager } from '$lib/stores/audio';
+    import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+    import SkeletonLoader from '$lib/components/SkeletonLoader.svelte';
     
-    let username = "";
-    let leaderboard: any[] = [];
-    let showVideo = true;
-    let removeVideo = false;
+    let username = $state("");
+    let leaderboard = $state<any[]>([]);
+    let showVideo = $state(true);
+    let removeVideo = $state(false);
+    let selectedDifficulty: Difficulty = $state('medium');
+    let showSettings = $state(false);
+    let isLoading = $state(true);
+    let isCreatingUser = $state(false);
 
     onMount(async () => {
-        // Fetch top 10 scores
-        const scoresRef = collection(db, "scores");
-        const q = query(scoresRef, orderBy("points", "desc"), limit(100));
-        const querySnapshot = await getDocs(q);
-        leaderboard = querySnapshot.docs.map(doc => doc.data());
+        try {
+            // Fetch top 10 scores
+            const scoresRef = collection(db, "scores");
+            const q = query(scoresRef, orderBy("points", "desc"), limit(100));
+            const querySnapshot = await getDocs(q);
+            leaderboard = querySnapshot.docs.map(doc => doc.data());
+        } catch (error) {
+            console.error("Error fetching leaderboard:", error);
+        } finally {
+            isLoading = false;
+        }
 
         // Hide video after 2 seconds
         setTimeout(() => {
@@ -33,11 +47,22 @@
             return;
         }
 
+        isCreatingUser = true;
+
+        // Play click sound
+        if (audioManager) {
+            audioManager.playSound('click');
+        }
+
+        // Update game settings with selected difficulty
+        gameSettings.updateSettings({ difficulty: selectedDifficulty });
+
         try {
             const usersRef = collection(db, "users");
             const docRef = await addDoc(usersRef, {
                 username: username,
                 createdAt: new Date(),
+                difficulty: selectedDifficulty
             });
 
             
@@ -52,6 +77,9 @@
             username = "";
         } catch (error) {
             console.error("Error creating user: ", error);
+            alert("Terjadi kesalahan. Silakan coba lagi.");
+        } finally {
+            isCreatingUser = false;
         }
     }
 </script>
@@ -89,11 +117,52 @@
                         placeholder="Masukkan username"
                     >
                 </div>
+                
+                <!-- Difficulty Selection -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Tingkat Kesulitan</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button
+                            class="px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium {selectedDifficulty === 'easy' ? 'bg-green-500' : 'bg-white/10'}"
+                            onclick={() => selectedDifficulty = 'easy'}
+                        >
+                            Mudah
+                        </button>
+                        <button
+                            class="px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium {selectedDifficulty === 'medium' ? 'bg-yellow-500' : 'bg-white/10'}"
+                            onclick={() => selectedDifficulty = 'medium'}
+                        >
+                            Sedang
+                        </button>
+                        <button
+                            class="px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium {selectedDifficulty === 'hard' ? 'bg-red-500' : 'bg-white/10'}"
+                            onclick={() => selectedDifficulty = 'hard'}
+                        >
+                            Sulit
+                        </button>
+                    </div>
+                    <div class="text-xs text-white/70 mt-2">
+                        {#if selectedDifficulty === 'easy'}
+                            • Pertanyaan dasar • 5 poin per jawaban • Timer 45 detik
+                        {:else if selectedDifficulty === 'medium'}
+                            • Pertanyaan menengah • 10 poin per jawaban • Timer 30 detik
+                        {:else}
+                            • Pertanyaan sulit • 20 poin per jawaban • Timer 20 detik
+                        {/if}
+                    </div>
+                </div>
+
                 <button 
-                    class="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg transition-colors duration-200 font-medium"
-                    on:click={createUser}
+                    class="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    onclick={createUser}
+                    disabled={isCreatingUser}
                 >
-                    Mulai Quiz
+                    {#if isCreatingUser}
+                        <LoadingSpinner size="small" />
+                        <span>Memulai...</span>
+                    {:else}
+                        Mulai Quiz
+                    {/if}
                 </button>
             </div>
         </div>
@@ -102,21 +171,34 @@
         <div class="bg-white/10 backdrop-blur-md p-6 rounded-lg shadow-lg">
             <h2 class="text-xl font-semibold mb-4">🏆 Peringkat Teratas</h2>
             <div class="space-y-3">
-                {#each leaderboard as user, i}
-                    <div class="flex items-center bg-white/5 p-3 rounded">
-                        <div class="text-2xl font-bold w-8">
-                            {#if i === 0}🥇
-                            {:else if i === 1}🥈
-                            {:else if i === 2}🥉
-                            {:else}{i + 1}.
-                            {/if}
+                {#if isLoading}
+                    <SkeletonLoader type="card" count={5} height="h-16" />
+                {:else if leaderboard.length === 0}
+                    <p class="text-center text-white/60 py-8">Belum ada pemain. Jadilah yang pertama!</p>
+                {:else}
+                    {#each leaderboard as user, i}
+                        <div class="flex items-center bg-white/5 p-3 rounded transition-all hover:bg-white/10">
+                            <div class="text-2xl font-bold w-8">
+                                {#if i === 0}🥇
+                                {:else if i === 1}🥈
+                                {:else if i === 2}🥉
+                                {:else}{i + 1}.
+                                {/if}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium">{user.username}</div>
+                                <div class="text-sm opacity-75">
+                                    {user.points} points
+                                    {#if user.difficulty}
+                                        <span class="ml-2 text-xs px-2 py-0.5 rounded-full bg-white/10">
+                                            {user.difficulty === 'easy' ? 'Mudah' : user.difficulty === 'medium' ? 'Sedang' : 'Sulit'}
+                                        </span>
+                                    {/if}
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex-1">
-                            <div class="font-medium">{user.username}</div>
-                            <div class="text-sm opacity-75">{user.points} points</div>
-                        </div>
-                    </div>
-                {/each}
+                    {/each}
+                {/if}
             </div>
         </div>
     </div>

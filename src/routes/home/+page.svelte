@@ -1,4 +1,5 @@
 <script lang="ts">
+    // Import images
     import spaceImage from '$lib/assets/space.jpg';
     import sunImage from '$lib/assets/sun.png';
     import mercuryImage from '$lib/assets/mercury.png';
@@ -14,21 +15,51 @@
     import gj504 from '$lib/assets/gj504.png';
     import nebula from '$lib/assets/nebula.png';
     import iss from '$lib/assets/iss.png';
+    
+    // Import utilities
     import { onMount, onDestroy } from 'svelte';
     import { goto } from '$app/navigation';
     import { db } from "../../firebase";
     import { doc, updateDoc, setDoc } from "firebase/firestore";
+    
+    // Import new components and stores
+    import { planetsData, type Planet } from '$lib/data/questions';
+    import { gameSettings, difficultyMultipliers, timerDurations } from '$lib/stores/gameSettings';
+    import { achievementsStore, checkAchievements } from '$lib/stores/achievements';
+    import { audioManager } from '$lib/stores/audio';
+    import QuestionTimer from '$lib/components/QuestionTimer.svelte';
+    import ComboIndicator from '$lib/components/ComboIndicator.svelte';
+    import AchievementNotification from '$lib/components/AchievementNotification.svelte';
+    import PlanetInfoModal from '$lib/components/PlanetInfoModal.svelte';
+    import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
-    let selectedPlanet: any = $state(null);
+    // Game state
+    let selectedPlanet: Planet | null = $state(null);
     let point = $state(0);
     let answered = $state(false);
     let isCorrect = $state(false);
     let userData: any = null;
     let completedQuestions = $state(new Set());
-
-    // Add these with other state variables
     let countdown = $state(5);
     let showCompletionModal = $state(false);
+    
+    // New features state
+    let currentSettings = $state({ difficulty: 'medium', timerEnabled: false, timerDuration: 30, showPlanetInfo: true });
+    let combo = $state(0);
+    let maxCombo = $state(0);
+    let showPlanetInfo = $state(false);
+    let selectedPlanetInfo: Planet | null = $state(null);
+    let showTimer = $state(false);
+    let answerStartTime = $state(0);
+    let correctAnswers = $state(0);
+    let totalAnswers = $state(0);
+    let incorrectStreak = $state(0);
+    let unlockedAchievements = $state<string[]>([]);
+    let showAchievement = $state(false);
+    let currentAchievement = $state(null);
+    
+    // Subscribe to achievements store
+    let achievementsData = $state<any[]>([]);
 
     onMount(() => {
         // Get user data from localStorage
@@ -36,6 +67,16 @@
         if (userDataStr) {
             userData = JSON.parse(userDataStr);
         }
+        
+        // Subscribe to game settings
+        const unsubscribeSettings = gameSettings.subscribe(settings => {
+            currentSettings = settings;
+        });
+        
+        // Subscribe to achievements
+        const unsubscribeAchievements = achievementsStore.subscribe(achievements => {
+            achievementsData = achievements;
+        });
         
         // Check every second
         intervalId = setInterval(() => {
@@ -65,18 +106,88 @@
             clearInterval(intervalId);
         }
     });
+    
+    // Get current question based on difficulty
+    function getCurrentQuestion(planet: Planet) {
+        return planet.questions[currentSettings.difficulty as keyof typeof planet.questions];
+    }
+    
+    // Handle timer timeout
+    function handleTimeout() {
+        if (!answered) {
+            answered = true;
+            isCorrect = false;
+            combo = 0;
+            incorrectStreak++;
+            totalAnswers++;
+            audioManager?.playSound('incorrect');
+        }
+    }
 
     const checkAnswer = async (answer: string) => {
+        if (!selectedPlanet) return;
+        
         answered = true;
-        if (answer === selectedPlanet.kunciJawaban) {
+        showTimer = false;
+        
+        const answerTime = (Date.now() - answerStartTime) / 1000;
+        const currentQuestion = getCurrentQuestion(selectedPlanet);
+        
+        if (answer === currentQuestion.kunciJawaban) {
             isCorrect = true;
-
-            point += 10;
+            correctAnswers++;
+            combo++;
+            incorrectStreak = 0;
+            
+            // Calculate points with difficulty and combo multipliers
+            const basePoints = 10;
+            const difficultyBonus = difficultyMultipliers[currentSettings.difficulty as keyof typeof difficultyMultipliers];
+            const comboMultiplier = combo >= 10 ? 3 : combo >= 7 ? 2.5 : combo >= 5 ? 2 : combo >= 3 ? 1.5 : 1;
+            const pointsEarned = Math.round(basePoints * difficultyBonus * comboMultiplier);
+            
+            point += pointsEarned;
+            maxCombo = Math.max(maxCombo, combo);
+            
+            // Play sound
+            audioManager?.playSound('correct');
         } else {
             isCorrect = false;
+            combo = 0;
+            incorrectStreak++;
+            
+            // Play sound
+            audioManager?.playSound('incorrect');
         }
         
+        totalAnswers++;
+        
         completedQuestions.add(selectedPlanet.name);
+        
+        // Check achievements
+        const gameState = {
+            correctAnswers,
+            totalAnswers,
+            consecutiveCorrect: combo,
+            visitedPlanets: completedQuestions as Set<string>,
+            totalScore: point,
+            answerTime,
+            incorrectStreak: isCorrect && incorrectStreak > 3 ? incorrectStreak : 0
+        };
+        
+        const newAchievements = checkAchievements(gameState);
+        for (const achievementId of newAchievements) {
+            achievementsStore.unlock(achievementId);
+            // Show achievement notification
+            const achievement = achievementsData.find(a => a.id === achievementId);
+            if (achievement && !achievement.unlocked) {
+                currentAchievement = achievement as any;
+                showAchievement = true;
+            }
+        }
+        
+        // Update progress achievements
+        achievementsStore.updateProgress('explorer', completedQuestions.size);
+        achievementsStore.updateProgress('half_journey', Math.min(correctAnswers, 7));
         
         try {
             await setDoc(doc(db, "scores", userData.id), {
@@ -84,7 +195,12 @@
                 username: userData.username,
                 points: point,
                 completedQuestions: Array.from(completedQuestions),
-                updatedAt: new Date()
+                updatedAt: new Date(),
+                difficulty: currentSettings.difficulty,
+                maxCombo,
+                correctAnswers,
+                totalAnswers,
+                achievements: achievementsData.filter(a => a.unlocked).map(a => a.id)
             });
 
             if (completedQuestions.size === planets.length) {
@@ -107,181 +223,54 @@
         selectedPlanet = null;
         answered = false;
         isCorrect = false;
+        showTimer = false;
     };
 
-    const planets = [
-        {
-            name: "Matahari",
-            image: sunImage,
-            width: 230,
-            height: 230,
-            animation: "glow",
-            question: "Istilah korupsi dalam bahasa Latin yang benar adalah… ",
-            answer: ["Corrupt", "Corruption", "Corrumpere", "Korruptie"],
-            kunciJawaban: "Corrumpere",
-            color: "#6B93D6",
-        },
-        {
-            name: "Merkurius",
-            image: mercuryImage,
-            width: 70,
-            height: 70,
-            position: "ml-42",
-            animation: "bounce",
-            question: "Istilah korupsi dari bahasa Malaysia yang benar adalah… ",
-            answer: ["Korupsi", "Rasuah", "Busuk", "Disuap"],
-            kunciJawaban: "Rasuah",
-            color: "#6B93D6"
-        },
-        {
-            name: "Venus",
-            image: venusImage,
-            width: 80,
-            height: 80,
-            position: "mr-52",
-            animation: "pulse",
-            question: "Suatu tindakan maupun ucapan yang lurus, tidak berbohong dan tidak curang disebut… ",
-            answer: ["Keadilan", "Tanggung Jawab", "Kejujuran", "Kesederhanaan"],
-            kunciJawaban: "Kejujuran",
-            color: "#6B93D6"
-        },
-        {
-            name: "Bumi",
-            image: earthImage,
-            width: 100,
-            height: 100,
-            position: "ml-10",
-            animation: "rotate",
-            question: "Komponen dari pengertian korupsi di bawah ini yang tidak benar adalah … ",
-            answer: ["Suatu perilaku yang terkait penyalahgunaan wewenang atau kekuasaan","Perbuatan tersebut memperkaya diri sendiri dan/atau kelompok","Merugikan keuangan negara","Perbuatannya ditujukan untuk mensejahterakan rakyat"],
-            kunciJawaban: "Perbuatannya ditujukan untuk mensejahterakan rakyat",
-            color: "#6B93D6"
-        },
-        {
-            name: "Mars",
-            image: mars,
-            width: 80,
-            height: 80,
-            position: "ml-52",
-            animation: "shake",
-            question: "Lembaga yang khusus dibentuk oleh Undang-Undang untuk mencegah dan memberantas korupsi di Indonesia adalah… ",
-            answer: ["Dewan Perwakilan Rakyat Republik Indonesia", "Komisi Pemberantasan Korupsi Republik Indonesia", "Mahkamah Agung Republik Indonesia", "Komisi Yudisial Republik Indonesia"],
-            kunciJawaban: "Komisi Pemberantasan Korupsi Republik Indonesia",
-            color: "#6B93D6"
-        },
-        {
-            name: "Jupiter",
-            image: jupiter,
-            width: 200,
-            height: 200,
-            position: "ml-2",
-            animation: "float",
-            question: "Petty Corruption adalah…",
-            answer: ["Penyalahgunaan kekuatan tingkat tinggi yang menguntungkan segelintir orang dengan mengorbankan banyak orang.", "Penyalahgunaan kekuasaan oleh pejabat publik dalam interaksi mereka dengan warga biasa di kehidupan sehari-hari.", "Manipulasi kebijakan, institusi dan dan aturan prosedur oleh para pengambil keputusan politik, yang menyalahgunakan posisinya untuk mempertahankan kekuasaan, status, dan kekayaannya.", "Perbuatan mengambil barang milik orang lain untuk dikuasai sendiri dengan ancaman kekerasan."],
-            kunciJawaban: "Penyalahgunaan kekuasaan oleh pejabat publik dalam interaksi mereka dengan warga biasa di kehidupan sehari-hari.",
-            color: "#6B93D6"
-        },
-        {
-            name: "Saturnus",
-            image: saturnus,
-            width: 200,
-            height: 200,
-            position: "mr-5",
-            animation: "wobble",
-            question: "Berikut jenis-jenis tindak pidana korupsi, kecuali: … ",
-            answer: ["Gratifikasi, Suap-Menyuap dan Penggelapan dalam jabatan", "Kerugian keuangan negara, benturan kepentingan dalam pengadaan, dan merintangi pemeriksanaan ", "Pencurian, Pemerasan, dan Gratifikasi", "Perbuatan curang, suap-menyuap dan pemerasan."],
-            kunciJawaban: "Pencurian, Pemerasan, dan Gratifikasi",
-            color: "#6B93D6"
-        },
-        {
-            name: "Uranus",
-            image: uranus,
-            width: 150,
-            height: 150,
-            position: "mr-52",
-            animation: "orbit",
-            question: "Fraud Triangle merupakan teori yang menjelaskan faktor-faktor penyebab korupsi. Penjelasan mengenai Fraud Triangle yang benar adalah.. ",
-            answer:["Capability, Rationalization,Pressure", "Pressure, Opportunity, Rationalization", "Pressure, Rationalization, Capability", "Opportunity, Capability, Rationalization"],
-            kunciJawaban: "Pressure, Opportunity, Rationalization",
-            color: "#6B93D6"
-        },
-        {
-            name: "Neptunus",
-            image: neptune,
-            width: 100,
-            height: 100,
-            position: "ml-52",
-            animation: "glow",
-            question: "Jenis-jenis perilaku koruptif yang sering dilakukan siswa yang paling tepat adalah… ",
-            answer: ["Terlambat, mencontek, plagiat, mark up uang buku, dan bolos", "Plagiat, berbohong, mencuri, dan suap", "Mencontek, tawuran, suap, gratifikasi", "Gratifikasi, Penyalahgunaan Dana Beasiswa, Mark-up uang sekolah dan penipuan"],
-            kunciJawaban:"Terlambat, mencontek, plagiat, mark up uang buku, dan bolos",
-            color: "#6B93D6"
-        },
-           {
-            name: "Pluto",
-            image: pluto,
-            width: 75,
-            height: 75,
-            position: "mr-3",
-            animation: "float",
-            question: "GONE Theory yang dikemukakan oleh Jack Bologne, merupakan singkatan dari:…",
-            answer: ["Greeds, Opportunities, Needs, Exposure", "Greeds, Option, Needs, Exposure", "Greats, Opportunities, Needs, Exposure", "Greats, Option, Needs, Exposure"],
-            kunciJawaban: "Greeds, Opportunities, Needs, Exposure",
-            color: "#6B93D6"
-        },
-          {
-            name: "Asteroid",
-            image: asteroid,
-            width: 60,
-            height: 60,
-            position: "mr-52",
-            animation: "rotate",
-            question: "Dampak langsung dari korupsi adalah … ",
-            answer: ["Kerusakan lingkungan", "Meningkatknya hutang negara", "Kerugian Negara", "Mahalnya harga jasa dan pelayanan public"],
-            kunciJawaban: "Kerugian Negara",
-            color: "#6B93D6"
-        },
-             {
-            name: "Nebula",
-            image: nebula,
-            width: 100,
-            height: 100,
-            position: "ml-10",
-            animation: "glow",
-            question: "Dasar hukum pemberantasan tindak pidana korupsi adalah… ",
-            answer: ["Undang-Undang Nomor 12 Tahun 2011","Undang – Undang Dasar Tahun 1945"," Undang-Undang Nomor 31 Tahun 1999","Undang-Undang Nomor 8 Tahun 1981"],
-            kunciJawaban: "Undang-Undang Nomor 31 Tahun 1999",
-            color: "#6B93D6"
-        },
-              {
-            name: "Stasiun Luar Angkasa ",
-            image: iss,
-            width: 65,
-            height: 65,
-            position: "ml-52",
-            animation: "shake",
-            question: "Nilai nilai yang harus ditanamkan sebagai sikap anti korupsi, kecuali:… ",
-            answer: ["Kejujuran, Kemandirian dan Kerja Keras", "Tanggung Jawab, Adil dan Berani", "Sederhana, Peduli, dan Disiplin", "Adil, Peduli, Pantang Menyerah"],
-            kunciJawaban: "Adil, Peduli, Pantang Menyerah",
-            color: "#6B93D6"
-        },
-        //    {
-        //     name: "GJ-504",
-        //     image: gj504,
-        //     width: 200,
-        //     height: 200,
-        //     position: "ml-2",
-        //     animation: "glow",
-        //     question: "test",
-        //     answer: ["test"],
-        //     kunciJawaban: "test",
-        //     color: "#6B93D6"
-        // },
-        
-    ];
+    // Map planet data with images
+    const planetImages = {
+        sun: sunImage,
+        mercury: mercuryImage,
+        venus: venusImage,
+        earth: earthImage,
+        mars: mars,
+        jupiter: jupiter,
+        saturnus: saturnus,
+        uranus: uranus,
+        neptune: neptune,
+        pluto: pluto,
+        asteroid: asteroid,
+        nebula: nebula,
+        iss: iss
+    };
+    
+    // Make planets reactive to difficulty changes
+    let planets = $derived(planetsData.map(planet => ({
+        ...planet,
+        image: planetImages[planet.image as keyof typeof planetImages] || sunImage,
+        question: getCurrentQuestion(planet).question,
+        answer: getCurrentQuestion(planet).answer,
+        kunciJawaban: getCurrentQuestion(planet).kunciJawaban
+    })));
+    
 
     function selectPlanet(planet: any) {
-        selectedPlanet = selectedPlanet === planet ? null : planet;
+        if (completedQuestions.has(planet.name)) return;
+        
+        if (selectedPlanet === planet) {
+            selectedPlanet = null;
+            showTimer = false;
+        } else {
+            selectedPlanet = planet;
+            answerStartTime = Date.now();
+            showTimer = currentSettings.timerEnabled;
+            audioManager?.playSound('click');
+        }
+    }
+    
+    function showPlanetInfoModal(planet: Planet) {
+        selectedPlanetInfo = planet;
+        showPlanetInfo = true;
+        audioManager?.playSound('click');
     }
 
     // Add preloading state
@@ -296,6 +285,28 @@
     let intervalId: any;
 </script>
 
+<!-- Components -->
+<QuestionTimer 
+    duration={timerDurations[currentSettings.difficulty as keyof typeof timerDurations]} 
+    onTimeout={handleTimeout}
+    isActive={showTimer && !answered}
+/>
+
+<ComboIndicator combo={combo} maxCombo={maxCombo} />
+
+{#if showAchievement && currentAchievement}
+    <AchievementNotification 
+        achievement={currentAchievement}
+        onClose={() => showAchievement = false}
+    />
+{/if}
+
+{#if showPlanetInfo && selectedPlanetInfo}
+    <PlanetInfoModal 
+        planet={selectedPlanetInfo}
+        onClose={() => showPlanetInfo = false}
+    />
+{/if}
 
 <!-- Mobile Only Content -->
 <div class="md:hidden space-container text-white relative min-h-screen">
@@ -319,7 +330,16 @@
     <div class="space-header">
         <h1 class="space-title">SOLAR SYSTEM</h1>
         <p class="space-subtitle">Ayo Jawab Soal yang Ada di Setiap Planet</p>
-        <p class="space-subtitle">Point Kamu adalah {point}</p>
+        <div class="flex justify-center items-center gap-4 mt-2">
+            <p class="space-subtitle">Points: <span class="font-bold text-yellow-400">{point}</span></p>
+            <span class="text-white/50">|</span>
+            <p class="space-subtitle">Level: <span class="font-bold {currentSettings.difficulty === 'easy' ? 'text-green-400' : currentSettings.difficulty === 'medium' ? 'text-yellow-400' : 'text-red-400'}">
+                {currentSettings.difficulty === 'easy' ? 'Mudah' : currentSettings.difficulty === 'medium' ? 'Sedang' : 'Sulit'}
+            </span></p>
+        </div>
+        <div class="mt-2 text-sm opacity-75">
+            Progress: {completedQuestions.size}/{planets.length} planets
+        </div>
     </div>
 
     <div class="gap-8 grid-cols-1 grid justify-items-center items-center mb-52 px-4 pb-20 relative z-3">
@@ -345,6 +365,19 @@
                 {#if completedQuestions.has(planet.name)}
                     <div class="completed-label">Done ✓</div>
                 {/if}
+                
+                {#if currentSettings.showPlanetInfo}
+                    <button 
+                        class="absolute top-2 right-2 bg-white/20 rounded-full p-1 text-xs backdrop-blur-sm"
+                        onclick={(e) => {
+                            e.stopPropagation();
+                            const planetData = planetsData.find(p => p.name === planet.name);
+                            if (planetData) showPlanetInfoModal(planetData);
+                        }}
+                    >
+                        ℹ️
+                    </button>
+                {/if}
             </div>
         {/each}
     </div>
@@ -352,11 +385,11 @@
     {#if selectedPlanet}
         <div class="planet-info" style="--planet-color: {selectedPlanet.color}">
             <h3>{selectedPlanet.name}</h3>
-            <p class="mb-4">{selectedPlanet.question}</p>
+            <p class="mb-4">{getCurrentQuestion(selectedPlanet).question}</p>
             
             <div class="answers">
                 {#if !answered}
-                    {#each selectedPlanet.answer as answer}
+                    {#each getCurrentQuestion(selectedPlanet).answer as answer}
                         <button 
                             class="answer-button w-full"
                             onclick={() => checkAnswer(answer)}
@@ -375,7 +408,7 @@
                             <div class="error-feedback">
                                 <p class="text-red-400 font-bold text-xl mb-2">❌ Jawaban Salah!</p>
                                 <p class="text-white text-sm">Jawaban yang benar:</p>
-                                <p class="text-white font-bold mt-1">{selectedPlanet.kunciJawaban}</p>
+                                <p class="text-white font-bold mt-1">{getCurrentQuestion(selectedPlanet).kunciJawaban}</p>
                             </div>
                         {/if}
                     </div>
@@ -393,10 +426,25 @@
 
     {#if showCompletionModal}
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-            <div class="bg-white/10 backdrop-blur-md p-8 rounded-lg shadow-lg text-center">
+            <div class="bg-white/10 backdrop-blur-md p-8 rounded-lg shadow-lg text-center max-w-md mx-4">
                 <h2 class="text-2xl font-bold mb-4">🎉 Selamat!</h2>
                 <p class="mb-4">Anda telah menyelesaikan semua soal!</p>
-                <p class="text-xl font-bold">Point Akhir: {point}</p>
+                
+                <div class="space-y-2 mb-4">
+                    <p class="text-xl font-bold">Point Akhir: <span class="text-yellow-400">{point}</span></p>
+                    <p>Jawaban Benar: <span class="text-green-400">{correctAnswers}/{totalAnswers}</span></p>
+                    <p>Combo Tertinggi: <span class="text-purple-400">x{maxCombo}</span></p>
+                    <p>Difficulty: <span class="{currentSettings.difficulty === 'easy' ? 'text-green-400' : currentSettings.difficulty === 'medium' ? 'text-yellow-400' : 'text-red-400'}">
+                        {currentSettings.difficulty === 'easy' ? 'Mudah' : currentSettings.difficulty === 'medium' ? 'Sedang' : 'Sulit'}
+                    </span></p>
+                </div>
+                
+                {#if achievementsData.filter(a => a.unlocked).length > 0}
+                    <div class="mb-4">
+                        <p class="text-sm opacity-75">Achievements Unlocked: {achievementsData.filter(a => a.unlocked).length}</p>
+                    </div>
+                {/if}
+                
                 <p class="mt-4">Kembali ke halaman utama dalam...</p>
                 <p class="text-4xl font-bold mt-2">{countdown}</p>
             </div>
