@@ -1,6 +1,6 @@
 <script lang="ts">
     import { db } from "../firebase";
-    import { collection, addDoc, getDocs, query, orderBy, limit } from "firebase/firestore";
+    import { collection, addDoc, getDocs, query, orderBy, limit, where, updateDoc, doc } from "firebase/firestore";
     import { goto } from '$app/navigation';
     import { onMount } from 'svelte';
     import vid from '../lib/assets/video.mp4';
@@ -68,17 +68,40 @@
         gameSettings.updateSettings({ difficulty: selectedDifficulty });
 
         try {
+            // Check if username already exists
             const usersRef = collection(db, "users");
-            const docRef = await addDoc(usersRef, {
-                username: username,
-                createdAt: new Date(),
-                difficulty: selectedDifficulty
-            });
-
+            const q = query(usersRef, where("username", "==", username.trim()));
+            const querySnapshot = await getDocs(q);
+            
+            let userId: string;
+            
+            if (!querySnapshot.empty) {
+                // Username exists, use existing user ID
+                const existingUser = querySnapshot.docs[0];
+                userId = existingUser.id;
+                
+                // Update user's last login
+                await updateDoc(doc(db, "users", userId), {
+                    lastLogin: new Date(),
+                    difficulty: selectedDifficulty
+                });
+                
+                // Don't reset the score, keep it for accumulation
+                // Score will be accumulated in the home page
+            } else {
+                // Create new user
+                const docRef = await addDoc(usersRef, {
+                    username: username.trim(),
+                    createdAt: new Date(),
+                    lastLogin: new Date(),
+                    difficulty: selectedDifficulty
+                });
+                userId = docRef.id;
+            }
             
             const userData = {
-                id: docRef.id,
-                username: username,
+                id: userId,
+                username: username.trim(),
                 expiry: new Date().getTime() + (60 * 60 * 1000)
             };
             
@@ -86,7 +109,7 @@
             await goto('/home');
             username = "";
         } catch (error) {
-            console.error("Error creating user: ", error);
+            console.error("Error creating/updating user: ", error);
             alert("Terjadi kesalahan. Silakan coba lagi.");
         } finally {
             isCreatingUser = false;

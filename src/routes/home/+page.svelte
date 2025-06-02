@@ -20,7 +20,7 @@
     import { onMount, onDestroy } from 'svelte';
     import { goto } from '$app/navigation';
     import { db } from "../../firebase";
-    import { doc, updateDoc, setDoc } from "firebase/firestore";
+    import { doc, updateDoc, setDoc, getDoc } from "firebase/firestore";
     
     // Import new components and stores
     import { planetsData, type Planet } from '$lib/data/questions';
@@ -42,6 +42,7 @@
     let completedQuestions = $state(new Set());
     let countdown = $state(5);
     let showCompletionModal = $state(false);
+    let previousScore = $state(0); // Store previous score
     
     // New features state
     let currentSettings = $state({ difficulty: 'medium', timerEnabled: false, timerDuration: 30, showPlanetInfo: true });
@@ -61,11 +62,29 @@
     // Subscribe to achievements store
     let achievementsData = $state<any[]>([]);
 
-    onMount(() => {
+    onMount(async () => {
         // Get user data from localStorage
         const userDataStr = localStorage.getItem('userData');
         if (userDataStr) {
             userData = JSON.parse(userDataStr);
+            
+            // Load existing score from database
+            try {
+                const scoreDoc = await getDoc(doc(db, "scores", userData.id));
+                if (scoreDoc.exists()) {
+                    const scoreData = scoreDoc.data();
+                    previousScore = scoreData.points || 0;
+                    point = previousScore; // Start with previous score
+                    // Don't load completedQuestions - let user start fresh quiz
+                    completedQuestions = new Set(); // Always start with empty set for new quiz
+                    // Keep track of lifetime stats
+                    maxCombo = 0; // Reset for this session
+                    correctAnswers = 0; // Reset for this session
+                    totalAnswers = 0; // Reset for this session
+                }
+            } catch (error) {
+                console.error("Error loading previous score:", error);
+            }
         }
         
         // Subscribe to game settings
@@ -214,7 +233,7 @@
                     countdown--;
                     if (countdown === 0) {
                         clearInterval(timer);
-                        localStorage.removeItem('userData');
+                        // Don't remove userData - let user continue playing
                         goto('/');
                     }
                 }, 1000);
@@ -436,7 +455,8 @@
                 <p class="mb-4">Anda telah menyelesaikan semua soal!</p>
                 
                 <div class="space-y-2 mb-4">
-                    <p class="text-xl font-bold">Point Akhir: <span class="text-yellow-400">{point}</span></p>
+                    <p class="text-lg">Point Sesi Ini: <span class="text-yellow-400">+{point - previousScore}</span></p>
+                    <p class="text-xl font-bold">Total Point: <span class="text-yellow-400">{point}</span></p>
                     <p>Jawaban Benar: <span class="text-green-400">{correctAnswers}/{totalAnswers}</span></p>
                     <p>Combo Tertinggi: <span class="text-purple-400">x{maxCombo}</span></p>
                     <p>Difficulty: <span class="{currentSettings.difficulty === 'easy' ? 'text-green-400' : currentSettings.difficulty === 'medium' ? 'text-yellow-400' : 'text-red-400'}">
@@ -452,6 +472,7 @@
                 
                 <p class="mt-4">Kembali ke halaman utama dalam...</p>
                 <p class="text-4xl font-bold mt-2">{countdown}</p>
+                <p class="text-sm opacity-75 mt-2">Anda dapat bermain lagi dengan username yang sama!</p>
             </div>
         </div>
     {/if}
